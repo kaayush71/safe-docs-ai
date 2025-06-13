@@ -25,7 +25,7 @@ def read_root():
 @app.post("/redact", response_model=RedactResponse)
 def redact_endpoint(request: RedactRequest):
     try:
-        redaction_candidates = redact_text(request.text)
+        redaction_candidates = redact_text(request.text, request.custom_request)
         return {"redaction_candidates": redaction_candidates}
     except Exception as e:
         print("Error: ", e)

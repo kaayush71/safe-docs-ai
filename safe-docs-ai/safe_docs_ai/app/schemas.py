@@ -3,6 +3,7 @@ from typing import List
 
 class RedactRequest(BaseModel):
     text: str
+    custom_request: str
 
 class RedactImageRequest(BaseModel):
     imagePath: str

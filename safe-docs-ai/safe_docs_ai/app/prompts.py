@@ -2,8 +2,9 @@ REDATION_PROMPTS = {
     "basic": """
         You are an AI model specialized in data privacy and redaction. 
         Your task is to analyze a given document and extract all sensitive personal information 
-        categories listed below. For each match, provide the exact text to redact, its reason, 
-        its type, and its position in the input text.
+        categories listed below, as well as any additional requirements specified by the user. 
+        For each match, provide the exact text to redact, its reason, its type, and its position 
+        in the input text.
 
         Categories to detect and redact:
         - Full or partial Names (e.g., "David", "David Johnson")
@@ -13,6 +14,9 @@ REDATION_PROMPTS = {
         - Personal Characteristics (e.g., race, religion, disability)
         - Information identifying property owned (e.g., "VIN: 1HGCM82633A004352", "Vehicle ID")
         - Asset Information (e.g., IP addresses, account numbers)
+
+        Additional custom redaction requirements:
+        {custom_requirements}
 
         Input document: {input_text}
 

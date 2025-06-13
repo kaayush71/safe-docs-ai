@@ -7,16 +7,31 @@ import openai
 
 CHUNK_SIZE = 500
 
-def redact_text(text: str) -> List[str]:
+def redact_text(text: str, custom_request: str) -> List[str]:
     if not OPENAI_API_KEY:
         raise ValueError("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
     
     chunks = chunk_text(text, chunk_size=CHUNK_SIZE)
     redaction_candidates = []
+
+    # Analyze the custom request to understand specific redaction requirements
+    custom_request_analysis = openai.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a document redaction expert. Analyze the user's request and provide specific redaction requirements in a clear, structured format."},
+            {"role": "user", "content": f"Analyze this redaction request and explain what specific types of information should be redacted: {custom_request}"}
+        ],
+        temperature=0.1
+    )
+    
+    custom_requirements = custom_request_analysis.choices[0].message.content 
     
     for chunk_num, chunk in enumerate(chunks, 0):
         print(f"Processing chunk {chunk_num} of {len(chunks)}")
-        prompt = REDATION_PROMPTS["basic"].format(input_text=chunk)
+        prompt = REDATION_PROMPTS["basic"].format(
+            input_text=chunk,
+            custom_requirements=custom_requirements
+        )
         response = openai.chat.completions.create(
             model="gpt-4",
             messages=[
