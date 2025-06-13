@@ -12,7 +12,9 @@ langchain = "^0.3.25"
 openai = "^1.86.0"
 python-dotenv = "^1.0.1"
 pytesseract = "^0.3.10"
-Pillow = "^10.3.0"
+pillow = "^10.3.0"
+langchain-community = "^0.3.25"
+langchain-openai = "^0.3.22"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,8 +1,10 @@
 import base64
-from pillow import Image, ImageDraw
+from io import BytesIO
+
+from PIL import Image, ImageDraw
 import pytesseract
 from pytesseract import Output
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 from dotenv import load_dotenv
 import os
@@ -66,9 +68,13 @@ def redact_image_and_return_base64(image_path):
 
     # Step 2: Use GPT to detect PII
     pii_lines = detect_pii_lines_with_gpt(lines)
+    print(f"Detected PII lines: {pii_lines}")
 
     # Step 3: Redact image
     redacted_image = redact_pii_in_image(image_path, pii_lines)
+    local_filename = "redacted_" + os.path.basename(image_path)
+    redacted_image.save(local_filename)
+    print(f"\n✅ Redacted image saved locally as: {local_filename}")
 
     # Step 4: Convert redacted image to base64
     from io import BytesIO
@@ -77,8 +83,19 @@ def redact_image_and_return_base64(image_path):
     base64_redacted = base64.b64encode(buffer.getvalue()).decode("utf-8")
     return base64_redacted
 
+def extract_text_from_base64_image(base64_str):
+    # Step 1: Decode base64 to image bytes
+    image_data = base64.b64decode(base64_str)
+    image = Image.open(BytesIO(image_data))
+
+    # Step 2: Use Tesseract OCR
+    extracted_text = pytesseract.image_to_string(image)
+    return extracted_text
+
 # Example usage
 if __name__ == "__main__":
-    redacted_base64 = redact_image_and_return_base64("sample_input.png")
-    print("🟥 Base64 of redacted image:\n")
+    redacted_base64 = redact_image_and_return_base64("sample_image.png")
+    print("Base64 of redacted image:\n")
     print(redacted_base64[:200] + "...")  # print first 200 chars only
+    text = extract_text_from_base64_image(redacted_base64)
+    print(f"\n📝 Extracted text from redacted image:\n{text}")
