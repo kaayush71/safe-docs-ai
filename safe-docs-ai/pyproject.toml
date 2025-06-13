@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "safe-docs-ai"
+version = "0.1.0"
+description = ""
+authors = ["Aayush Kumar <aayush.kumar_c@equipmentshare.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+langchain = "^0.3.25"
+openai = "^1.86.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
