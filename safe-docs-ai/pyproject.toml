@@ -3,13 +3,16 @@ name = "safe-docs-ai"
 version = "0.1.0"
 description = ""
 authors = ["Aayush Kumar <aayush.kumar_c@equipmentshare.com>"]
+packages = [{ include = "safe_docs_ai" }]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
 langchain = "^0.3.25"
 openai = "^1.86.0"
-
+python-dotenv = "^1.0.1"
+pytesseract = "^0.3.10"
+Pillow = "^10.3.0"
 
 [build-system]
 requires = ["poetry-core"]
