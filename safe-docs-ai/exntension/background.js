@@ -69,7 +69,7 @@ async function insertRedactedVersion(documentId, redactedText) {
     console.log("New document created with ID:", redactedDoc);
 
     const requestsText = generateFormattedRedactedRequests(redactedText);
-    console.log("requests", requestsText);
+    console.log("generateFormattedRedactedRequests: ", requestsText);
     const response = await fetch(`https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`, {
       method: 'POST',
       headers: {
@@ -82,7 +82,7 @@ async function insertRedactedVersion(documentId, redactedText) {
     console.log("Batch update response:", response);
 
     const requests = generateStyleResetRequestsFromDoc(redactedText);
-    console.log("requests", requests);
+    console.log("generateStyleResetRequestsFromDoc: ", requests);
     const  res = await fetch(`https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`, {
       method: 'POST',
       headers: {
@@ -101,6 +101,7 @@ async function insertRedactedVersion(documentId, redactedText) {
 
 function generateStyleResetRequestsFromDoc(doc) {
   const content = doc.body?.content || [];
+  console.log("generateStyleResetRequestsFromDoc: ", doc)
   const requests = [];
 
   let seenStyles = {
@@ -118,19 +119,28 @@ function generateStyleResetRequestsFromDoc(doc) {
     for (let j = 0; j < elements.length; j++) {
       const el = elements[j];
       const textRun = el.textRun;
-      if (!textRun || !textRun.textStyle) continue;
+      const inlineObject = el.inlineObjectElement;
 
-      const currentStyle = textRun.textStyle;
+      let textStyle = null;
+      if (textRun?.textStyle) {
+        textStyle = textRun.textStyle;
+      } else if (inlineObject?.textStyle) {
+        textStyle = inlineObject.textStyle;
+      } else {
+        continue;
+      }
+
+      const currentStyle = textStyle;
       const stylesToUnset = {};
       const startIndex = el.startIndex;
       const endIndex = el.endIndex;
 
-      // Mark styles as seen
+      // Track seen styles
       if (currentStyle.bold === true) seenStyles.bold = true;
       if (currentStyle.italic === true) seenStyles.italic = true;
       if (currentStyle.underline === true) seenStyles.underline = true;
 
-      // If a style has ever been seen, and it's not explicitly true now, force set to false
+      // Force unset if previously seen but not explicitly true
       if (seenStyles.bold && currentStyle.bold !== true) stylesToUnset.bold = false;
       if (seenStyles.italic && currentStyle.italic !== true) stylesToUnset.italic = false;
       if (seenStyles.underline && currentStyle.underline !== true) stylesToUnset.underline = false;
@@ -157,6 +167,7 @@ function generateStyleResetRequestsFromDoc(doc) {
 function generateFormattedRedactedRequests(doc) {
   const requests = [];
   const content = doc.body?.content || [];
+  const inlineObjects = doc.inlineObjects || {};
 
   let currentIndex = 1;
 
@@ -168,37 +179,73 @@ function generateFormattedRedactedRequests(doc) {
 
     for (const el of elements) {
       const textRun = el.textRun;
-      if (!textRun?.content) continue;
+      const inlineObject = el.inlineObjectElement;
 
-      // Insert the text
-      requests.push({
-        insertText: {
-          location: { index: currentIndex },
-          text: textRun.content
-        }
-      });
-
-      const length = textRun.content.length;
-
-      // Apply the textStyle
-      if (textRun.textStyle && Object.keys(textRun.textStyle).length > 0) {
+      if (textRun?.content) {
+        // Insert the text
         requests.push({
-          updateTextStyle: {
-            range: {
-              startIndex: currentIndex,
-              endIndex: currentIndex + length
-            },
-            textStyle: textRun.textStyle,
-            fields: Object.keys(textRun.textStyle).join(',')
+          insertText: {
+            location: { index: currentIndex },
+            text: textRun.content
           }
         });
-      }
 
-      currentIndex += length;
+        const length = textRun.content.length;
+
+        // Apply the textStyle
+        if (textRun.textStyle && Object.keys(textRun.textStyle).length > 0) {
+          requests.push({
+            updateTextStyle: {
+              range: {
+                startIndex: currentIndex,
+                endIndex: currentIndex + length
+              },
+              textStyle: textRun.textStyle,
+              fields: Object.keys(textRun.textStyle).join(',')
+            }
+          });
+        }
+
+        currentIndex += length;
+
+      } else if (inlineObject?.inlineObjectId) {
+        const objectId = inlineObject.inlineObjectId;
+        const object = inlineObjects[objectId];
+        const embeddedImage = object?.inlineObjectProperties?.embeddedObject?.imageProperties?.contentUri;
+
+        if (!embeddedImage) continue; // Skip if we can't resolve the URI
+
+        // Insert the image using the resolved URI
+        requests.push({
+          insertInlineImage: {
+            location: { index: currentIndex },
+            uri: embeddedImage,
+            objectSize: object?.inlineObjectProperties?.embeddedObject?.size || undefined,
+          }
+        });
+
+        // Apply textStyle if available
+        if (inlineObject.textStyle && Object.keys(inlineObject.textStyle).length > 0) {
+          requests.push({
+            updateTextStyle: {
+              range: {
+                startIndex: currentIndex,
+                endIndex: currentIndex + 1
+              },
+              textStyle: inlineObject.textStyle,
+              fields: Object.keys(inlineObject.textStyle).join(',')
+            }
+          });
+        }
+
+        currentIndex += 1; // Image occupies 1 character space
+      }
     }
 
-    // Add newline at the end of the paragraph if not already there
-    if (!elements[elements.length - 1]?.textRun?.content?.endsWith('\n')) {
+    // Ensure newline after paragraph
+    const lastEl = elements[elements.length - 1];
+    const endsWithNewline = lastEl?.textRun?.content?.endsWith('\n');
+    if (!endsWithNewline) {
       requests.push({
         insertText: {
           location: { index: currentIndex },

@@ -1,18 +1,9 @@
-import pytesseract
-import base64
-import os
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from safe_docs_ai.app.image_redactor import extract_text_from_base64_image, redact_image_and_return_base64
+from safe_docs_ai.app.image_redactor import redact_image_and_return_base64
 from safe_docs_ai.app.schemas import RedactImageRequest, RedactImageResponse, RedactRequest, RedactResponse
 from safe_docs_ai.app.redactor import redact_text
-from io import BytesIO
-from PIL import Image, ImageDraw
-from pytesseract import Output
-from langchain_community.chat_models import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
 
 app = FastAPI(
     title="AI Document Redactor",
@@ -48,9 +39,9 @@ def redact_image_endpoint(request: RedactImageRequest):
         redacted_base64 = redact_image_and_return_base64(request.imagePath)
         print("Base64 of redacted image:\n")
         print(redacted_base64[:200] + "...")  # print first 200 chars only
-        text = extract_text_from_base64_image(redacted_base64)
-        print(f"\n📝 Extracted text from redacted image:\n{text}")
-        return {"redacted_text": text}
+        # text = extract_text_from_base64_image(redacted_base64)
+        # print(f"\n📝 Extracted text from redacted image:\n{text}")
+        return {"redacted_image_base64": redacted_base64}
     except Exception as e:
         print("Error: ", e)
         raise HTTPException(status_code=500, detail=str(e))
