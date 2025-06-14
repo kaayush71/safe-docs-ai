@@ -6,10 +6,10 @@ class RedactRequest(BaseModel):
     custom_request: str
 
 class RedactImageRequest(BaseModel):
-    imagePath: str
+    base64image: str
 
 class RedactResponse(BaseModel):
     redaction_candidates: List[dict]
 
 class RedactImageResponse(BaseModel):
-    redacted_text: str
+    redacted_image_base64: str

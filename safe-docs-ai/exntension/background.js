@@ -10,6 +10,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     insertRedactedVersion(message.documentId, message.redactedText);
     return true;
   }
+  
+    if (message.type === "GET_ACCESS_TOKEN") {
+      getAccessToken()
+        .then((token) => sendResponse({ success: true, token }))
+        .catch((error) => sendResponse({ success: false, error: error.message || error }));
+      return true; // Keep message channel open for async
+    }
 });
 
 async function handleGoogleDocFetch(documentId, sendResponse) {

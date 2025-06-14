@@ -36,11 +36,7 @@ def redact_endpoint(request: RedactRequest):
 @app.post("/redact-image", response_model=RedactImageResponse)
 def redact_image_endpoint(request: RedactImageRequest):
     try: 
-        redacted_base64 = redact_image_and_return_base64(request.imagePath)
-        print("Base64 of redacted image:\n")
-        print(redacted_base64[:200] + "...")  # print first 200 chars only
-        # text = extract_text_from_base64_image(redacted_base64)
-        # print(f"\n📝 Extracted text from redacted image:\n{text}")
+        redacted_base64 = redact_image_and_return_base64(request.base64image)
         return {"redacted_image_base64": redacted_base64}
     except Exception as e:
         print("Error: ", e)
