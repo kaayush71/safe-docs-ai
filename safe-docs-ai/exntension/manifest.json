@@ -1,27 +1,41 @@
 {
-    "manifest_version": 3,
-    "name": "AI Redactor",
-    "version": "1.0",
-    "description": "Redacts confidential information from Google Docs.",
-    "permissions": [
-      "activeTab",
-      "scripting",
-      "storage"
-    ],
-    "action": {
-      "default_popup": "popup.html",
-      "default_icon": {
-        "16": "icon16.png",
-        "48": "icon48.png"
-      }
-    },
-    "background": {
-      "service_worker": "background.js"
-    },
-    "content_scripts": [
-      {
-        "matches": ["https://docs.google.com/document/*"],
-        "js": ["content.js"]
-      }
+  "manifest_version": 3,
+  "name": "AI Redactor",
+  "version": "1.0",
+  "description": "Redacts confidential information from Google Docs.",
+  "permissions": [
+    "identity",
+    "identity.email",
+    "scripting",
+    "storage"
+  ],
+  "oauth2": {
+    "client_id": "585639995127-b15pjien52kguq3tutmukd0qfmb55koi.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/documents.readonly", 
+      "https://www.googleapis.com/auth/documents",
+      "https://www.googleapis.com/auth/userinfo.email"
     ]
-  }
+  },
+  "host_permissions": [
+    "https://docs.google.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/document/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -3,6 +3,8 @@ import base64
 import os
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
 from safe_docs_ai.app.image_redactor import extract_text_from_base64_image, redact_image_and_return_base64
 from safe_docs_ai.app.schemas import RedactImageRequest, RedactImageResponse, RedactRequest, RedactResponse
 from safe_docs_ai.app.redactor import redact_text
@@ -16,6 +18,14 @@ app = FastAPI(
     title="AI Document Redactor",
     description="Redacts sensitive information from input text using OpenAI + LangChain",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://docs.google.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")

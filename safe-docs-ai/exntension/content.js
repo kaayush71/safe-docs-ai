@@ -1,141 +1,131 @@
+function getDocumentId() {
+  const matches = window.location.pathname.match(/\/d\/([^/]+)/);
+  return matches ? matches[1] : null;
+}
+
 window.addEventListener("message", async (event) => {
+  console.log("Received message from:", event.data);
   if (event.source !== window || event.data.type !== "AI_REDACTOR_SCAN") return;
-  const prompt = event.data.prompt || "";
+  const documentId = getDocumentId();
+  console.log(`Document ID found: ${documentId}`);
+  if (!documentId) return console.error("No document ID found in URL.");
 
-  const bodyEl = document.querySelector("div.kix-appview-editor");
-  const textEls = bodyEl.querySelectorAll("span.kix-lineview-text-block");
-  let fullText = "";
-  const spans = [];
-
-  textEls.forEach((el) => {
-    fullText += el.textContent + "\n";
-    spans.push(el);
+  const response = await chrome.runtime.sendMessage({
+    type: "GET_DOC_CONTENT",
+    documentId
   });
 
-  const chunks = chunkText(fullText, 3000);
+  console.log("Response from background script:", response);
+  if (!response.success) {
+    console.error("Failed to fetch document from Google Docs API:", response.error);
+    return;
+  }
+
+  const doc = response.data;
+  const fullText = extractTextFromGoogleDoc(doc);
+
+  const chunks = chunkText(fullText, 500);
+  console.log("chunks", chunks);
   const allRedactions = [];
 
   for (const chunk of chunks) {
-    const response = await fetch("https://YOUR-BACKEND-URL.com/redact", {
+    const res = await fetch("http://localhost:8000/redact", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: chunk }),
+      body: JSON.stringify({ text: chunk, custom_request: event.data.prompt || "" }),
     });
-    const result = await response.json();
-    if (Array.isArray(result)) allRedactions.push(...result);
+    const result = await res.json();
+    console.log("result", result);
+    if (Array.isArray(result['redaction_candidates'])) allRedactions.push(...result['redaction_candidates']);
   }
-
-  highlightSnippets(spans, allRedactions);
-  await redactImagesWithAPI();
+  
+  console.log("Redactions:", allRedactions);
+  const redactedText = generateRedactedText(doc, allRedactions);
+  console.log("Redacted Version:\n", redactedText);
+  
+  await chrome.runtime.sendMessage({
+  type: "INSERT_REDACTED_TEXT",
+  documentId,
+  redactedText
 });
 
-function chunkText(text, maxLength) {
-  const chunks = [];
-  let start = 0;
+});
 
-  while (start < text.length) {
-    let end = Math.min(start + maxLength, text.length);
+function extractTextFromGoogleDoc(doc) {
+  let text = "";
+  const body = doc.body?.content || [];
 
-    // Try to break on a space
-    if (end < text.length) {
-      const spaceIndex = text.lastIndexOf(" ", end);
-      if (spaceIndex > start) {
-        end = spaceIndex;
+  for (const element of body) {
+    if (element.paragraph) {
+      for (const el of element.paragraph.elements) {
+        text += el.textRun?.content || "";
       }
+      text += "\n";
     }
-
-    chunks.push(text.slice(start, end));
-    start = end + 1; // Move past the space
   }
-
-  return chunks;
+  return text;
 }
 
-function highlightSnippets(spans, redactions) {
-  redactions.forEach(({ snippet, type }) => {
-    spans.forEach((span) => {
-      if (span.textContent.includes(snippet)) {
-        span.style.backgroundColor = type === "PII" ? "#ffcccc" : "#ccffff";
-      }
-    });
-  });
-}
 
-const redactedMap = new Map(); // Map<imgElement, { originalSrc, redactedSrc }>
+  function chunkText(text, maxLength) {
+    const chunks = [];
+    let start = 0;
 
-async function redactImagesWithAPI() {
-  const images = Array.from(document.querySelectorAll("img"));
+    while (start < text.length) {
+      let end = Math.min(start + maxLength, text.length);
 
-  for (const img of images) {
-    const originalSrc = img.src;
-
-    try {
-      // Draw image to canvas
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-
-      const dataUrl = canvas.toDataURL("image/png");
-      const base64Image = dataUrl.split(",")[1];
-
-      const response = await fetch(
-        "https://YOUR-BACKEND-URL.com/redact-image",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64Image }),
+      // Try to break on a space
+      if (end < text.length) {
+        const spaceIndex = text.lastIndexOf(" ", end);
+        if (spaceIndex > start) {
+          end = spaceIndex;
         }
-      );
-
-      const result = await response.json();
-      if (result.redactedImage) {
-        const redactedSrc = `data:image/png;base64,${result.redactedImage}`;
-        img.src = redactedSrc;
-
-        redactedMap.set(img, { originalSrc, redactedSrc });
-
-        addRevertTooltip(img); // ⬅️ Add tooltip after redacting
       }
-    } catch (err) {
-      console.error("Image redaction failed:", err);
+
+      chunks.push(text.slice(start, end));
+      start = end + 1; // Move past the space
+    }
+
+    return chunks;
+  }
+  
+function generateRedactedText(doc, redactions) {
+  const body = doc.body?.content || [];
+
+  // Build a set of redaction texts for faster lookup
+  const redactionMap = new Map();
+  for (const item of redactions) {
+    redactionMap.set(item.text, '*'.repeat(item.text.length));
+  }
+
+  for (const element of body) {
+    if (!element.paragraph) continue;
+
+    for (const el of element.paragraph.elements || []) {
+      const textRun = el.textRun;
+      if (!textRun || !textRun.content) continue;
+
+      let original = textRun.content;
+      let modified = original;
+
+      // Replace all redaction matches in this text run
+      for (const [targetText, replacement] of redactionMap.entries()) {
+        const pattern = new RegExp(escapeRegExp(targetText), 'g');
+        modified = modified.replace(pattern, replacement);
+      }
+
+      // If modified, update the content
+      if (modified !== original) {
+        textRun.content = modified;
+      }
     }
   }
+  
+  console.log("Redacted document body:", body);
+  return doc;
 }
 
-function addRevertTooltip(img) {
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "relative";
-  wrapper.style.display = "inline-block";
-
-  // Insert wrapper before image
-  img.parentNode.insertBefore(wrapper, img);
-  wrapper.appendChild(img);
-
-  const tooltip = document.createElement("div");
-  tooltip.textContent = "Revert redaction";
-  tooltip.style.position = "absolute";
-  tooltip.style.top = "4px";
-  tooltip.style.right = "4px";
-  tooltip.style.background = "rgba(0,0,0,0.7)";
-  tooltip.style.color = "#fff";
-  tooltip.style.fontSize = "12px";
-  tooltip.style.padding = "2px 6px";
-  tooltip.style.borderRadius = "4px";
-  tooltip.style.cursor = "pointer";
-  tooltip.style.zIndex = "9999";
-  tooltip.style.opacity = "0.8";
-
-  tooltip.addEventListener("click", () => {
-    const state = redactedMap.get(img);
-    if (state) {
-      img.src = state.originalSrc;
-      redactedMap.delete(img);
-      // remove tooltip after revert
-      tooltip.remove();
-    }
-  });
-
-  wrapper.appendChild(tooltip);
+// Utility function to escape RegExp characters in redaction text
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
