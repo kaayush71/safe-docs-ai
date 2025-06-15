@@ -12,12 +12,17 @@ document.getElementById("scanButton").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     // Check if we have an active tab
     if (tabs.length > 0) {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        func: triggerScanOnPage,
-        // Pass an empty string as the prompt for a standard scan
-        args: [""],
-      });
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tabs[0].id },
+          func: triggerScanOnPage,
+          // Pass an empty string as the prompt for a standard scan
+          args: [""],
+        },
+        () => {
+          setTimeout(() => window.close(), 200);
+        }
+      );
     }
   });
 });
@@ -32,12 +37,31 @@ document.getElementById("scanPromptButton").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     // Check if we have an active tab
     if (tabs.length > 0) {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        func: triggerScanOnPage,
-        // Pass the user's custom prompt from the textarea
-        args: [promptValue],
-      });
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tabs[0].id },
+          func: triggerScanOnPage,
+          // Pass the user's custom prompt from the textarea
+          args: [promptValue],
+        },
+        () => {
+          setTimeout(() => window.close(), 200);
+        }
+      );
     }
+  });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".mui-btn").forEach((btn) => {
+    btn.addEventListener("click", function (e) {
+      const ripple = this.querySelector(".mui-ripple");
+      if (!ripple) return;
+      ripple.classList.remove("show");
+      const rect = this.getBoundingClientRect();
+      ripple.style.left = e.clientX - rect.left + "px";
+      ripple.style.top = e.clientY - rect.top + "px";
+      ripple.classList.add("show");
+    });
   });
 });
