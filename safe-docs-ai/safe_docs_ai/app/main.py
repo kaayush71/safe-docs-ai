@@ -36,7 +36,7 @@ def redact_endpoint(request: RedactRequest):
 @app.post("/redact-image", response_model=RedactImageResponse)
 def redact_image_endpoint(request: RedactImageRequest):
     try: 
-        redacted_base64 = redact_image_and_return_base64(request.base64image)
+        redacted_base64 = redact_image_and_return_base64(request.base64image, request.custom_request)
         return {"redacted_image_base64": redacted_base64}
     except Exception as e:
         print("Error: ", e)

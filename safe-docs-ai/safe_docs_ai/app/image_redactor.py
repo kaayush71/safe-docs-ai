@@ -18,24 +18,26 @@ def encode_image_to_base64(image: Image.Image) -> str:
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
-def build_pii_detection_prompt(text_lines):
+def build_pii_detection_prompt(text_lines, custom_request):
     text = "\n".join(text_lines)
     return [
         SystemMessage(content="You are a PII detection expert."),
         HumanMessage(content=(
             f"""Here is the text extracted from an image. Identify which lines contain PII (personally identifiable information)
-such as emails, phone numbers, names, addresses, SSNs, etc.
-Return only the exact lines that contain PII, nothing else.
+                such as emails, phone numbers, names, addresses, SSNs, etc.
+                Also include any additional custom redaction requirements: {custom_request}
 
-Text:
-{text}"""
+                Return only the exact lines that contain PII, nothing else.
+
+                Text:
+                {text}"""
         ))
     ]
 
 
-def detect_pii_lines_with_gpt(text_lines):
+def detect_pii_lines_with_gpt(text_lines, custom_request):
     llm = ChatOpenAI(model="gpt-4", temperature=0)
-    messages = build_pii_detection_prompt(text_lines)
+    messages = build_pii_detection_prompt(text_lines, custom_request)
     response = llm.invoke(messages)
     pii_lines = [line.strip() for line in response.content.splitlines() if line.strip()]
     return pii_lines
@@ -65,7 +67,7 @@ def redact_pii_in_image(image: Image.Image, pii_lines):
     return image
 
 
-def redact_image_and_return_base64(base64_image_str: str) -> str:
+def redact_image_and_return_base64(base64_image_str: str, custom_request: str) -> str:
     # Step 1: Decode base64 → Image
     image = decode_base64_to_image(base64_image_str)
 
@@ -74,7 +76,7 @@ def redact_image_and_return_base64(base64_image_str: str) -> str:
     lines = [text.strip() for text in ocr_data["text"] if text.strip()]
 
     # Step 3: Detect PII lines using GPT
-    pii_lines = detect_pii_lines_with_gpt(lines)
+    pii_lines = detect_pii_lines_with_gpt(lines, custom_request)
     print(f"Detected PII lines: {pii_lines}")
 
     # Step 4: Redact PII in image

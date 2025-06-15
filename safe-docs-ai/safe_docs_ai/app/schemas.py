@@ -7,6 +7,7 @@ class RedactRequest(BaseModel):
 
 class RedactImageRequest(BaseModel):
     base64image: str
+    custom_request: str
 
 class RedactResponse(BaseModel):
     redaction_candidates: List[dict]
