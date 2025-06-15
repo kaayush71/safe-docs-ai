@@ -5,8 +5,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "INSERT_REDACTED_TEXT") {
-    console.log("Inserting redacted text for document:", message.documentId);
-    console.log("Redacted text content:", message.redactedText);
     insertRedactedVersion(message.documentId, message.redactedText);
     return true;
   }
@@ -24,7 +22,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 async function handleGoogleDocFetch(documentId, sendResponse) {
   try {
     const token = await getAccessToken();
-    console.log("token", token);
     const response = await fetch(
       `https://docs.googleapis.com/v1/documents/${documentId}`,
       {
@@ -48,7 +45,6 @@ function getAccessToken() {
         console.log("Error retrieving access token:", chrome.runtime.lastError);
         reject(chrome.runtime.lastError);
       } else {
-        console.log("Access token retrieved:", token);
         resolve(token);
       }
     });
@@ -84,10 +80,8 @@ async function insertRedactedVersion(documentId, redactedText) {
     );
     const newDoc = await createDocRes.json();
     const redactedDoc = newDoc.documentId;
-    console.log("New document created with ID:", redactedDoc);
 
     const requestsText = generateFormattedRedactedRequests(redactedText);
-    console.log("generateFormattedRedactedRequests: ", requestsText);
     const response = await fetch(
       `https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`,
       {
@@ -100,10 +94,8 @@ async function insertRedactedVersion(documentId, redactedText) {
       }
     );
 
-    console.log("Batch update response:", response);
 
     const requests = generateStyleResetRequestsFromDoc(redactedText);
-    console.log("generateStyleResetRequestsFromDoc: ", requests);
     const res = await fetch(
       `https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`,
       {
@@ -116,7 +108,6 @@ async function insertRedactedVersion(documentId, redactedText) {
       }
     );
 
-    console.log("Batch update response:", res);
   } catch (error) {
     console.error("Error creating new document:", error);
   }
@@ -124,7 +115,6 @@ async function insertRedactedVersion(documentId, redactedText) {
 
 function generateStyleResetRequestsFromDoc(doc) {
   const content = doc.body?.content || [];
-  console.log("generateStyleResetRequestsFromDoc: ", doc);
   const requests = [];
 
   let seenStyles = {

@@ -4,10 +4,8 @@ function getDocumentId() {
 }
 
 window.addEventListener("message", async (event) => {
-  console.log("Received message from:", event.data);
   if (event.source !== window || event.data.type !== "AI_REDACTOR_SCAN") return;
   const documentId = getDocumentId();
-  console.log(`Document ID found: ${documentId}`);
   if (!documentId) return console.error("No document ID found in URL.");
 
   const response = await chrome.runtime.sendMessage({
@@ -15,7 +13,6 @@ window.addEventListener("message", async (event) => {
     documentId,
   });
 
-  console.log("Response from background script:", response);
   if (!response.success) {
     console.error(
       "Failed to fetch document from Google Docs API:",
@@ -31,10 +28,8 @@ window.addEventListener("message", async (event) => {
   getTextRedactions(doc, event.data.prompt || "")
 ]);
   
-  console.log("Redactions:", allRedactions);
   const redactedText = generateRedactedText(doc, allRedactions);
   await applyRedactedImages(redactedText, redactedImagesMap);
-  console.log("Redacted Version:\n", redactedText);
 
   await chrome.runtime.sendMessage({
     type: "INSERT_REDACTED_TEXT",
@@ -132,7 +127,6 @@ function generateRedactedText(doc, redactions) {
     }
   }
 
-  console.log("Redacted document body:", body);
   return doc;
 }
 
