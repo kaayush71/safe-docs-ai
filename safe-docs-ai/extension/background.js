@@ -1,33 +1,38 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'GET_DOC_CONTENT') {
+  if (message.type === "GET_DOC_CONTENT") {
     handleGoogleDocFetch(message.documentId, sendResponse);
     return true;
   }
-  
-  if (message.type === 'INSERT_REDACTED_TEXT') {
+
+  if (message.type === "INSERT_REDACTED_TEXT") {
     console.log("Inserting redacted text for document:", message.documentId);
     console.log("Redacted text content:", message.redactedText);
     insertRedactedVersion(message.documentId, message.redactedText);
     return true;
   }
-  
-    if (message.type === "GET_ACCESS_TOKEN") {
-      getAccessToken()
-        .then((token) => sendResponse({ success: true, token }))
-        .catch((error) => sendResponse({ success: false, error: error.message || error }));
-      return true; // Keep message channel open for async
-    }
+
+  if (message.type === "GET_ACCESS_TOKEN") {
+    getAccessToken()
+      .then((token) => sendResponse({ success: true, token }))
+      .catch((error) =>
+        sendResponse({ success: false, error: error.message || error })
+      );
+    return true;
+  }
 });
 
 async function handleGoogleDocFetch(documentId, sendResponse) {
   try {
     const token = await getAccessToken();
     console.log("token", token);
-    const response = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await fetch(
+      `https://docs.googleapis.com/v1/documents/${documentId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
     const doc = await response.json();
     sendResponse({ success: true, data: doc });
@@ -55,60 +60,71 @@ async function insertRedactedVersion(documentId, redactedText) {
     const token = await getAccessToken();
 
     // Step 1: Fetch the original document to get the title
-    const originalDocRes = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}`, {
-      headers: {Authorization: `Bearer ${token}`},
-    });
+    const originalDocRes = await fetch(
+      `https://docs.googleapis.com/v1/documents/${documentId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
     const originalDoc = await originalDocRes.json();
-    const originalTitle = originalDoc.title || 'Untitled';
+    const originalTitle = originalDoc.title || "Untitled";
     const newTitle = `Redacted: ${originalTitle}`;
 
     // Step 2: Create a new document
-    const createDocRes = await fetch('https://docs.googleapis.com/v1/documents', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({title: newTitle}),
-    });
+    const createDocRes = await fetch(
+      "https://docs.googleapis.com/v1/documents",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title: newTitle }),
+      }
+    );
     const newDoc = await createDocRes.json();
     const redactedDoc = newDoc.documentId;
     console.log("New document created with ID:", redactedDoc);
 
     const requestsText = generateFormattedRedactedRequests(redactedText);
     console.log("generateFormattedRedactedRequests: ", requestsText);
-    const response = await fetch(`https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({requests: requestsText}),
-    });
+    const response = await fetch(
+      `https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requests: requestsText }),
+      }
+    );
 
     console.log("Batch update response:", response);
 
     const requests = generateStyleResetRequestsFromDoc(redactedText);
     console.log("generateStyleResetRequestsFromDoc: ", requests);
-    const  res = await fetch(`https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ requests }),
-    });
+    const res = await fetch(
+      `https://docs.googleapis.com/v1/documents/${redactedDoc}:batchUpdate`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requests }),
+      }
+    );
 
     console.log("Batch update response:", res);
-    }
-    catch (error) {
-      console.error("Error creating new document:", error);
-    }
+  } catch (error) {
+    console.error("Error creating new document:", error);
+  }
 }
 
 function generateStyleResetRequestsFromDoc(doc) {
   const content = doc.body?.content || [];
-  console.log("generateStyleResetRequestsFromDoc: ", doc)
+  console.log("generateStyleResetRequestsFromDoc: ", doc);
   const requests = [];
 
   let seenStyles = {
@@ -119,7 +135,8 @@ function generateStyleResetRequestsFromDoc(doc) {
 
   for (let i = 0; i < content.length; i++) {
     const section = content[i];
-    if (!section.paragraph || !Array.isArray(section.paragraph.elements)) continue;
+    if (!section.paragraph || !Array.isArray(section.paragraph.elements))
+      continue;
 
     const elements = section.paragraph.elements;
 
@@ -148,11 +165,18 @@ function generateStyleResetRequestsFromDoc(doc) {
       if (currentStyle.underline === true) seenStyles.underline = true;
 
       // Force unset if previously seen but not explicitly true
-      if (seenStyles.bold && currentStyle.bold !== true) stylesToUnset.bold = false;
-      if (seenStyles.italic && currentStyle.italic !== true) stylesToUnset.italic = false;
-      if (seenStyles.underline && currentStyle.underline !== true) stylesToUnset.underline = false;
+      if (seenStyles.bold && currentStyle.bold !== true)
+        stylesToUnset.bold = false;
+      if (seenStyles.italic && currentStyle.italic !== true)
+        stylesToUnset.italic = false;
+      if (seenStyles.underline && currentStyle.underline !== true)
+        stylesToUnset.underline = false;
 
-      if (Object.keys(stylesToUnset).length > 0 && startIndex != null && endIndex != null) {
+      if (
+        Object.keys(stylesToUnset).length > 0 &&
+        startIndex != null &&
+        endIndex != null
+      ) {
         requests.push({
           updateTextStyle: {
             range: {
@@ -160,7 +184,7 @@ function generateStyleResetRequestsFromDoc(doc) {
               endIndex,
             },
             textStyle: stylesToUnset,
-            fields: Object.keys(stylesToUnset).join(','),
+            fields: Object.keys(stylesToUnset).join(","),
           },
         });
       }
@@ -170,7 +194,6 @@ function generateStyleResetRequestsFromDoc(doc) {
   return requests;
 }
 
-
 function generateFormattedRedactedRequests(doc) {
   const requests = [];
   const content = doc.body?.content || [];
@@ -179,7 +202,8 @@ function generateFormattedRedactedRequests(doc) {
   let currentIndex = 1;
 
   for (const section of content) {
-    if (!section.paragraph || !Array.isArray(section.paragraph.elements)) continue;
+    if (!section.paragraph || !Array.isArray(section.paragraph.elements))
+      continue;
 
     const paragraph = section.paragraph;
     const elements = paragraph.elements;
@@ -193,8 +217,8 @@ function generateFormattedRedactedRequests(doc) {
         requests.push({
           insertText: {
             location: { index: currentIndex },
-            text: textRun.content
-          }
+            text: textRun.content,
+          },
         });
 
         const length = textRun.content.length;
@@ -205,20 +229,21 @@ function generateFormattedRedactedRequests(doc) {
             updateTextStyle: {
               range: {
                 startIndex: currentIndex,
-                endIndex: currentIndex + length
+                endIndex: currentIndex + length,
               },
               textStyle: textRun.textStyle,
-              fields: Object.keys(textRun.textStyle).join(',')
-            }
+              fields: Object.keys(textRun.textStyle).join(","),
+            },
           });
         }
 
         currentIndex += length;
-
       } else if (inlineObject?.inlineObjectId) {
         const objectId = inlineObject.inlineObjectId;
         const object = inlineObjects[objectId];
-        const embeddedImage = object?.inlineObjectProperties?.embeddedObject?.imageProperties?.contentUri;
+        const embeddedImage =
+          object?.inlineObjectProperties?.embeddedObject?.imageProperties
+            ?.contentUri;
 
         if (!embeddedImage) continue; // Skip if we can't resolve the URI
 
@@ -227,21 +252,25 @@ function generateFormattedRedactedRequests(doc) {
           insertInlineImage: {
             location: { index: currentIndex },
             uri: embeddedImage,
-            objectSize: object?.inlineObjectProperties?.embeddedObject?.size || undefined,
-          }
+            objectSize:
+              object?.inlineObjectProperties?.embeddedObject?.size || undefined,
+          },
         });
 
         // Apply textStyle if available
-        if (inlineObject.textStyle && Object.keys(inlineObject.textStyle).length > 0) {
+        if (
+          inlineObject.textStyle &&
+          Object.keys(inlineObject.textStyle).length > 0
+        ) {
           requests.push({
             updateTextStyle: {
               range: {
                 startIndex: currentIndex,
-                endIndex: currentIndex + 1
+                endIndex: currentIndex + 1,
               },
               textStyle: inlineObject.textStyle,
-              fields: Object.keys(inlineObject.textStyle).join(',')
-            }
+              fields: Object.keys(inlineObject.textStyle).join(","),
+            },
           });
         }
 
@@ -251,13 +280,13 @@ function generateFormattedRedactedRequests(doc) {
 
     // Ensure newline after paragraph
     const lastEl = elements[elements.length - 1];
-    const endsWithNewline = lastEl?.textRun?.content?.endsWith('\n');
+    const endsWithNewline = lastEl?.textRun?.content?.endsWith("\n");
     if (!endsWithNewline) {
       requests.push({
         insertText: {
           location: { index: currentIndex },
-          text: '\n'
-        }
+          text: "\n",
+        },
       });
       currentIndex += 1;
     }
