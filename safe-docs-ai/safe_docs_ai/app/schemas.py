@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class RedactRequest(BaseModel):
     text: str
@@ -7,6 +7,7 @@ class RedactRequest(BaseModel):
 
 class RedactImageRequest(BaseModel):
     base64image: str
+    custom_request: Optional[str] = ""
 
 class RedactResponse(BaseModel):
     redaction_candidates: List[dict]

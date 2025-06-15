@@ -25,12 +25,12 @@ window.addEventListener("message", async (event) => {
   }
 
   const doc = response.data;
-
+  
   const [redactedImagesMap, allRedactions] = await Promise.all([
-    fetchAndRedactImages(doc),
-    getTextRedactions(doc, event.data.prompt || ""),
-  ]);
-
+  fetchAndRedactImages(doc, event.data.prompt || ""),
+  getTextRedactions(doc, event.data.prompt || "")
+]);
+  
   console.log("Redactions:", allRedactions);
   const redactedText = generateRedactedText(doc, allRedactions);
   await applyRedactedImages(redactedText, redactedImagesMap);
@@ -141,7 +141,7 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function fetchAndRedactImages(doc) {
+async function fetchAndRedactImages(doc, customPrompt) {
   const inlineObjects = doc.inlineObjects || {};
   const redactedImagesMap = new Map();
 
@@ -151,13 +151,13 @@ async function fetchAndRedactImages(doc) {
         obj.inlineObjectProperties?.embeddedObject?.imageProperties?.contentUri;
       if (!uri) return;
 
-      try {
-        const base64 = await fetchImageAsBase64(uri);
-        const response = await fetch("http://localhost:8000/redact-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ base64image: base64 }),
-        });
+    try {
+      const base64 = await fetchImageAsBase64(uri);
+      const response = await fetch("http://localhost:8000/redact-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64image: base64, custom_request: customPrompt }),
+      });
 
         const data = await response.json();
         if (data?.redacted_image_base64) {
