@@ -56,7 +56,7 @@ def redact_text(text: str, custom_request: str) -> List[str]:
         custom_requirements=custom_requirements
     )
     response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4.1",
         messages=[
             {"role": "system", "content": "You are a precise document redaction assistant. Always return a list of objects"},
             {"role": "user", "content": prompt}
