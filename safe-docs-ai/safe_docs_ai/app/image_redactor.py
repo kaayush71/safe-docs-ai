@@ -25,9 +25,9 @@ def build_pii_detection_prompt(text_lines, custom_request = ''):
         HumanMessage(content=(
             f"""Here is the text extracted from an image. Identify which lines contain PII (personally identifiable information)
                 such as emails, phone numbers, names, addresses, SSNs, etc.
-                Also include any additional custom redaction requirements, if any: {custom_request}
-
                 Return only the exact lines that contain PII, nothing else.
+                
+                Also include any additional custom redaction requirements, if any: {custom_request}
 
                 Text:
                 {text}"""
