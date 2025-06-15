@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="eng">
+  <head>
+    <title>AI Document Redactor</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: 'Roboto', Arial, sans-serif;
+        width: 320px;
+        padding: 0;
+        background-color: #fff;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        box-sizing: border-box;
+        justify-content: center;
+        align-items: center;
+      }
+      .mui-container {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(60,60,60,0.13), 0 1.5px 5px rgba(60,60,60,0.08);
+        padding: 24px 20px 20px 20px;
+        width: 100%;
+        max-width: 270px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .mui-title {
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 2px;
+        text-align: center;
+        letter-spacing: 0.5px;
+        color: #212121;
+      }
+      .mui-desc {
+        font-size: 13px;
+        color: #757575;
+        text-align: center;
+        margin-bottom: 16px;
+        margin-top: 0;
+      }
+      .mui-button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .mui-btn {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        padding: 11px 0;
+        font-size: 15px;
+        font-weight: 500;
+        background-color: #1976d2;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(25, 118, 210, 0.08);
+        cursor: pointer;
+        outline: none;
+        transition: background 0.2s, box-shadow 0.2s;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mui-btn:hover, .mui-btn:focus {
+        background-color: #1565c0;
+        box-shadow: 0 4px 10px rgba(25, 118, 210, 0.13);
+      }
+      .mui-btn .mui-ripple {
+        position: absolute;
+        border-radius: 50%;
+        transform: scale(0);
+        background: rgba(255,255,255,0.5);
+        pointer-events: none;
+        width: 100px;
+        height: 100px;
+        left: 50%;
+        top: 50%;
+        opacity: 0;
+        transition: transform 0.4s, opacity 0.4s;
+        z-index: 2;
+      }
+      .mui-btn .mui-ripple.show {
+        transform: scale(2.5);
+        opacity: 1;
+        transition: transform 0.4s, opacity 0.4s;
+      }
+      .mui-input {
+        padding: 10px 12px;
+        font-size: 15px;
+        border: 1.5px solid #bdbdbd;
+        border-radius: 6px;
+        width: 100%;
+        box-sizing: border-box;
+        outline: none;
+        background: #fafafa;
+        color: #212121;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        margin-top: 0;
+        margin-bottom: 2px;
+      }
+      .mui-input:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.13);
+        background: #fff;
+      }
+    </style>
+    <script src="popup.js" defer></script>
+  </head>
+  <body>
+    <div class="mui-container">
+      <h1 class="mui-title">AI Redactor</h1>
+      <p class="mui-desc">Redact sensitive info from documents using AI.</p>
+      <div class="mui-button-group">
+        <button id="scanButton" class="mui-btn">
+          <span>Scan</span><span class="mui-ripple"></span>
+        </button>
+        <button id="scanPromptButton" class="mui-btn">
+          <span>Scan with Prompt</span><span class="mui-ripple"></span>
+        </button>
+      </div>
+      <input
+        type="text"
+        id="customPrompt"
+        class="mui-input"
+        placeholder="Enter custom prompt..."
+      />
+    </div>
+  </body>
+</html>

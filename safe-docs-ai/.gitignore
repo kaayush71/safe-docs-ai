@@ -1,0 +1,16 @@
+*.egg-info
+*.pyc
+*~
+.DS_Store
+.cache/
+.idea/
+.python-version
+.tox/
+build/
+dist/
+deploy
+docs/
+local/
+.venv/
+venv/
+.env
