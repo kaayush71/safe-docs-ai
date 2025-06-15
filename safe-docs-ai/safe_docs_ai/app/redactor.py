@@ -68,7 +68,6 @@ def redact_text(text: str, custom_request: str) -> List[str]:
     parsed_list = json.loads(analysis)
     for item in parsed_list: 
         redaction_candidates.append(item)
-
     # Add validation step
     additional_candidates = validate_redaction(text, redaction_candidates, custom_requirements)
     redaction_candidates.extend(additional_candidates)

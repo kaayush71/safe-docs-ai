@@ -34,17 +34,37 @@ def build_pii_detection_prompt(text_lines, custom_request = ''):
     )
 
     custom_requirements = custom_request_analysis.choices[0].message.content
+    
     return [
         SystemMessage(content="You are a PII detection expert."),
         HumanMessage(content=(
-            f"""Here is the text extracted from an image. Identify which lines contain PII (personally identifiable information)
-                such as emails, phone numbers, names, addresses, SSNs, etc.
-                Return only the exact words that contain PII, nothing else.
-                
-                Also include any additional custom redaction requirements, if any: {custom_requirements}
-                
+            f"""
+                Instructions:
+                - Identify which words in the extracted text contain PII 
+                    (personally identifiable information), such as emails, phone numbers, names, addresses, SSNs, etc.
+                - Also include any additional custom redaction requirements: {custom_requirements}
+                - Return only a JSON array of the exact words that contain PII, with no extra text, explanation, or formatting.
+                - If no words contain PII, return an empty array: []
+
+                Workflow:
+                1. Read the extracted text.
+                2. Identify all words that match the PII categories or custom requirements.
+                3. For each match, add the exact word to the output array.
+                4. Return the array as your only output.
+
+                Output format example:
+                [
+                "john.doe@email.com",
+                "123-45-6789"
+                ]
+
+                Do not:
+                - Add any explanation, prose, or formatting outside the JSON array.
+                - Repeat the instructions or categories in your output.
+
                 Text:
-                {text}"""
+                {text}
+            """
         ))
     ]
 
