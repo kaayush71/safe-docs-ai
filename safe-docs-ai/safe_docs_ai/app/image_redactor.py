@@ -18,14 +18,14 @@ def encode_image_to_base64(image: Image.Image) -> str:
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
-def build_pii_detection_prompt(text_lines, custom_request):
+def build_pii_detection_prompt(text_lines, custom_request = ''):
     text = "\n".join(text_lines)
     return [
         SystemMessage(content="You are a PII detection expert."),
         HumanMessage(content=(
             f"""Here is the text extracted from an image. Identify which lines contain PII (personally identifiable information)
                 such as emails, phone numbers, names, addresses, SSNs, etc.
-                Also include any additional custom redaction requirements: {custom_request}
+                Also include any additional custom redaction requirements, if any: {custom_request}
 
                 Return only the exact lines that contain PII, nothing else.
 
